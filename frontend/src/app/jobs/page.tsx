@@ -1,220 +1,91 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import ExamCard from '@/components/booklet/ExamCard'
+import { useState, type FormEvent } from 'react'
 import ExamButton from '@/components/booklet/ExamButton'
 import ExamInput from '@/components/booklet/ExamInput'
-import { searchJobs, getMarketInsights, HAS_BACKEND, type JobResult } from '@/lib/api'
+import styles from './jobs.module.css'
 
-type TrendingSkill = { name: string; growth: string; icon?: string }
-type TopLocation = { name: string; jobs: string; icon?: string }
-type SalaryInsight = { role: string; range: string; experience: string }
-type Insights = {
-  trending_skills?: TrendingSkill[]
-  top_locations?: TopLocation[]
-  salary_insights?: SalaryInsight[]
-}
+type Search = { query: string; location: string }
 
-const DEMO_INSIGHTS: Insights = {
-  trending_skills: [
-    { name: 'Artificial Intelligence', growth: '+45%' },
-    { name: 'Cloud Computing', growth: '+38%' },
-    { name: 'Data Science', growth: '+35%' },
-    { name: 'Cybersecurity', growth: '+32%' },
-    { name: 'DevOps', growth: '+30%' },
-    { name: 'Machine Learning', growth: '+28%' },
-  ],
-  top_locations: [
-    { name: 'San Francisco', jobs: '45,000+' },
-    { name: 'New York', jobs: '38,000+' },
-    { name: 'Seattle', jobs: '28,000+' },
-    { name: 'Austin', jobs: '22,000+' },
-    { name: 'Boston', jobs: '18,000+' },
-    { name: 'Denver', jobs: '14,000+' },
-  ],
-  salary_insights: [
-    { role: 'Machine Learning Engineer', range: '$140K \u2014 $260K', experience: '0\u20135 years' },
-    { role: 'Software Engineer', range: '$110K \u2014 $210K', experience: '0\u20135 years' },
-    { role: 'Data Scientist', range: '$125K \u2014 $230K', experience: '0\u20135 years' },
-    { role: 'DevOps Engineer', range: '$120K \u2014 $220K', experience: '0\u20135 years' },
-    { role: 'Product Designer', range: '$100K \u2014 $190K', experience: '0\u20135 years' },
-  ],
-}
-
-const DEMO_JOBS = (query: string, location: string): JobResult[] => {
-  const locQ = encodeURIComponent(location || '')
-  const q = encodeURIComponent(query)
-  return [
-    { portal: 'LinkedIn', title: `${query} jobs${location ? ' in ' + location : ''}`, url: `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${locQ}`, icon: '', color: '#0A66C2' },
-    { portal: 'Indeed', title: `${query} jobs${location ? ' in ' + location : ''}`, url: `https://www.indeed.com/jobs?q=${q}&l=${locQ}`, icon: '', color: '#2164F3' },
-    { portal: 'Glassdoor', title: `${query} jobs${location ? ' in ' + location : ''}`, url: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${q}&locT=&locId=&locKeyword=${locQ}`, icon: '', color: '#0CAA41' },
-    { portal: 'Google Jobs', title: `${query}${location ? ' ' + location : ''}`, url: `https://www.google.com/search?q=${q}+jobs+${locQ}`, icon: '', color: '#4285F4' },
-    { portal: 'Hacker News', title: `${query} (Who is Hiring)`, url: `https://hn.algolia.com/?q=${q}&sort=byDate&type=comment`, icon: '', color: '#FF6600' },
-    { portal: 'Wellfound', title: `${query} at startups`, url: `https://wellfound.com/jobs?job_listing_search%5Bquery%5D=${q}`, icon: '', color: '#000000' },
-  ]
-}
+const getSearchLinks = ({ query, location }: Search) => [
+  {
+    name: 'LinkedIn',
+    description: 'Roles, companies, and professional networks',
+    url: `https://www.linkedin.com/jobs/search/?${new URLSearchParams({ keywords: query, location })}`,
+  },
+  {
+    name: 'Indeed',
+    description: 'Jobs across industries and experience levels',
+    url: `https://www.indeed.com/jobs?${new URLSearchParams({ q: query, l: location })}`,
+  },
+  {
+    name: 'Google',
+    description: 'Search for openings across the web',
+    url: `https://www.google.com/search?${new URLSearchParams({ q: [query, 'jobs', location].filter(Boolean).join(' ') })}`,
+  },
+]
 
 export default function JobsPage() {
   const [query, setQuery] = useState('')
   const [location, setLocation] = useState('')
-  const [detectingLocation, setDetectingLocation] = useState(false)
-  const [searching, setSearching] = useState(false)
-  const [jobs, setJobs] = useState<JobResult[]>([])
-  const [insights, setInsights] = useState<Insights | null>(null)
-  const [hasSearched, setHasSearched] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState<Search | null>(null)
 
-  useEffect(() => {
-    setDetectingLocation(true)
-    fetch('https://ipapi.co/json/')
-      .then((r) => r.json())
-      .then((d) => { if (d.city && d.region) setLocation(`${d.city}, ${d.region}`) })
-      .catch(() => {})
-      .finally(() => setDetectingLocation(false))
-  }, [])
-
-  const handleSearch = async () => {
-    if (!query) return
-    setSearching(true); setError(null)
-    if (!HAS_BACKEND) {
-      await new Promise((r) => setTimeout(r, 800))
-      setJobs(DEMO_JOBS(query, location))
-      setInsights(DEMO_INSIGHTS)
-      setHasSearched(true)
-      setSearching(false)
-      return
-    }
-    try {
-      const [jobResults, insightData] = await Promise.all([searchJobs(query, location), getMarketInsights().catch(() => null)])
-      setJobs(jobResults); setInsights(insightData as Insights | null); setHasSearched(true)
-    } catch {
-      setJobs(DEMO_JOBS(query, location))
-      setInsights(DEMO_INSIGHTS)
-      setHasSearched(true)
-    } finally {
-      setSearching(false)
-    }
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!query.trim()) return
+    setSearch({ query: query.trim(), location: location.trim() })
   }
 
   return (
     <div className="tool-wrapper">
       <div className="tool-paper">
-        <div className="tool-binding" aria-hidden />
-
-        <div className="tool-running-head">
-          <span>DR4FT · Career Research</span>
-          <span>Section C · Field Notes</span>
-        </div>
-
         <div className="tool-header">
-          <div className="tool-header-kicker">Examination Booklet</div>
-          <h1 className="tool-header-title">Job search.</h1>
+          <h1 className="tool-header-title">Find your next role.</h1>
+          <p className={styles.intro}>Use the same search terms on LinkedIn, Indeed, and Google.</p>
         </div>
 
-        <ExamCard>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-            <ExamInput label="Keywords" value={query} onChange={setQuery} placeholder="Software Engineer" required />
-            <div>
-              <ExamInput label="Location" value={detectingLocation ? 'Detecting...' : location} onChange={setLocation} placeholder="San Francisco, CA" />
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                      try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`, { headers: { Accept: 'application/json' } })
-                        const data = await res.json()
-                        const city = data.address?.city || data.address?.town || data.address?.village || ''
-                        const state = data.address?.state || ''
-                        if (city) setLocation(`${city}${state ? `, ${state}` : ''}`)
-                      } catch {}
-                    }, () => {}, { enableHighAccuracy: true }
-                  )
-                }}
-                style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-cover)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4, padding: '10px 0', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
-              >
-                Use precise location
-              </button>
-            </div>
+        <form onSubmit={handleSearch} className={styles.form}>
+          <div className={styles.fields}>
+            <ExamInput
+              label="Role or keywords"
+              value={query}
+              onChange={setQuery}
+              placeholder="e.g. Software engineer"
+              required
+            />
+            <ExamInput
+              label="Location (optional)"
+              value={location}
+              onChange={setLocation}
+              placeholder="City, country, or remote"
+            />
           </div>
-          <ExamButton onClick={handleSearch} disabled={!query || searching} variant="filled" fullWidth>
-            {searching ? 'Searching...' : 'Search Jobs'}
-          </ExamButton>
-        </ExamCard>
+          <ExamButton type="submit" disabled={!query.trim()} variant="filled">Show search links</ExamButton>
+        </form>
 
-        {error && <div style={{ marginTop: 16, padding: 12, border: '1px solid rgba(185,28,28,0.2)', textAlign: 'center' }}><p style={{ color: '#B91C1C', fontSize: 13 }}>{error}</p></div>}
+        <div aria-live="polite" aria-atomic="true" className={styles.searchSummary}>
+          {search && <p>Search for <strong>{search.query}</strong>{search.location ? ` · ${search.location}` : ' · All locations'}</p>}
+        </div>
 
-        {hasSearched && (
-          <div style={{ marginTop: 32 }}>
-            <p style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)', marginBottom: 16 }}>{jobs.length} portals found</p>
-            {jobs.map((job, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.06)', transition: 'background 0.3s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                <div>
-                  <span style={{ fontFamily: 'var(--font-label)', fontWeight: 800, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: job.color }}>{job.portal}</span>
-                  <p style={{ fontSize: 14, color: 'var(--color-pencil)', marginTop: 2 }}>{job.title}</p>
-                </div>
-                <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn-exam-outline" style={{ padding: '6px 16px', fontSize: 10 }}>
-                  View<span className="sr-only"> on {job.portal}</span>
-                </a>
-              </div>
-            ))}
-            {insights && (
-              <div className="market-insights">
-                <div className="market-insights-head">
-                  <div className="product-eyebrow">Market Insights</div>
-                  <h2 className="market-insights-title">The state of the market.</h2>
-                </div>
-
-                <div className="market-insights-grid">
-                  {insights.trending_skills && insights.trending_skills.length > 0 && (
-                    <section className="insight-block">
-                      <div className="insight-block-label">Trending Skills</div>
-                      <ul className="insight-list">
-                        {insights.trending_skills.map((s) => (
-                          <li key={s.name} className="insight-row">
-                            <span className="insight-row-name">{s.name}</span>
-                            <span className="insight-row-meta insight-growth">{s.growth}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-
-                  {insights.top_locations && insights.top_locations.length > 0 && (
-                    <section className="insight-block">
-                      <div className="insight-block-label">Top Locations</div>
-                      <ul className="insight-list">
-                        {insights.top_locations.map((loc) => (
-                          <li key={loc.name} className="insight-row">
-                            <span className="insight-row-name">{loc.name}</span>
-                            <span className="insight-row-meta">{loc.jobs}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-
-                  {insights.salary_insights && insights.salary_insights.length > 0 && (
-                    <section className="insight-block insight-block-wide">
-                      <div className="insight-block-label">Salary Insights</div>
-                      <ul className="insight-list">
-                        {insights.salary_insights.map((s) => (
-                          <li key={s.role} className="insight-row insight-row-salary">
-                            <span className="insight-row-name">{s.role}</span>
-                            <span className="insight-row-range">{s.range}</span>
-                            <span className="insight-row-exp">{s.experience}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+        {search && (
+          <section aria-label="Job board search links">
+            <ul className={styles.boards}>
+              {getSearchLinks(search).map((board) => (
+                <li key={board.name}>
+                  <a href={board.url} target="_blank" rel="noopener noreferrer" className={styles.board}>
+                    <span>
+                      <span className={styles.boardName}>{board.name}</span>
+                      <span className={styles.boardDescription}>{board.description}</span>
+                    </span>
+                    <span className={styles.open}>Open search <span aria-hidden="true">↗</span></span>
+                    <span className="sr-only"> in a new tab</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className={styles.note}>Each link opens the job board in a new tab. Listings and filters are managed there.</p>
+          </section>
         )}
-        {!hasSearched && <div style={{ textAlign: 'center', padding: '64px 0' }}><p style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.2)' }}>Enter search parameters to begin</p></div>}
       </div>
     </div>
   )

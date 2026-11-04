@@ -1,231 +1,250 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import ExamCard from '@/components/booklet/ExamCard'
 import ExamButton from '@/components/booklet/ExamButton'
-import GradeDisplay from '@/components/booklet/GradeDisplay'
 import PaperUpload from '@/components/booklet/PaperUpload'
-import { getRoles, analyzeResumeAI, HAS_BACKEND, type JobRoles } from '@/lib/api'
+import { analyzeResume, analyzeResumeAI, getRoles, getReviewCapabilities, type AIResumeAnalysis, type JobRoles, type ResumeAnalysis } from '@/lib/api'
 
-const emptyRole = { description: '', required_skills: [], sections: [], recommended_skills: { technical: [], soft: [] } }
-const mkCat = (roles: string[]) => Object.fromEntries(roles.map((r) => [r, emptyRole]))
-
-const DEMO_ROLES: JobRoles = {
-  Engineering: mkCat(['Software Engineer', 'Senior Software Engineer', 'Frontend Engineer', 'Backend Engineer', 'Fullstack Engineer', 'DevOps Engineer', 'Machine Learning Engineer']),
-  'Data & AI': mkCat(['Data Scientist', 'Data Analyst', 'Data Engineer', 'ML Engineer', 'AI Researcher']),
-  Design: mkCat(['Product Designer', 'UX Designer', 'UI Designer', 'Design Engineer']),
-  Product: mkCat(['Product Manager', 'Program Manager', 'Technical Product Manager']),
-  Business: mkCat(['Business Analyst', 'Marketing Manager', 'Sales Engineer', 'Consultant']),
-}
-
-type DisplayResult = {
-  ats_score: number
-  keyword_match: number
-  format_score: number
-  section_score: number
-  missing_skills: string[]
-  suggestions: string[]
-}
+type ReviewResult = { role: string; fileName: string } & (
+  | { mode: 'standard'; data: ResumeAnalysis }
+  | { mode: 'ai'; data: AIResumeAnalysis }
+)
 
 export default function AnalyzerPage() {
-  const [activeTab, setActiveTab] = useState<'standard' | 'ai'>('standard')
+  const [mode, setMode] = useState<'standard' | 'ai'>('standard')
   const [roleMap, setRoleMap] = useState<JobRoles>({})
-  const [categories, setCategories] = useState<string[]>([])
+  const [rolesStatus, setRolesStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [rolesError, setRolesError] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
   const [category, setCategory] = useState('')
   const [role, setRole] = useState('')
+  const [jobDescription, setJobDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
-  const [result, setResult] = useState<DisplayResult | null>(null)
+  const [result, setResult] = useState<ReviewResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const reviewRequest = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (!HAS_BACKEND) {
-      setRoleMap(DEMO_ROLES)
-      setCategories(Object.keys(DEMO_ROLES))
-      return
-    }
-    getRoles()
-      .then((data) => { setRoleMap(data); setCategories(Object.keys(data)) })
-      .catch(() => {
-        setRoleMap(DEMO_ROLES)
-        setCategories(Object.keys(DEMO_ROLES))
+    const controller = new AbortController()
+    Promise.all([getRoles(controller.signal), getReviewCapabilities(controller.signal)])
+      .then(([data, capabilities]) => {
+        if (controller.signal.aborted) return
+        setRoleMap(data)
+        setAiAvailable(capabilities.ai)
+        setRolesError(null)
+        setRolesStatus('ready')
       })
-  }, [])
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted) return
+        setRolesError(cause instanceof Error ? cause.message : 'The list of roles is unavailable.')
+        setRolesStatus('error')
+      })
+    return () => controller.abort()
+  }, [retry])
 
-  const availableRoles = category ? Object.keys(roleMap[category] ?? {}) : []
+  useEffect(() => () => reviewRequest.current?.abort(), [])
 
-  const demoAIResult = (): DisplayResult => ({
-    ats_score: 82,
-    keyword_match: 78,
-    format_score: 0,
-    section_score: 0,
-    missing_skills: [
-      'Quantified impact on Experience bullets',
-      'Gaps in cloud infrastructure coverage (AWS / GCP)',
-      'Soft-skills signal is thin relative to the role',
-      'Leadership / mentorship language underweighted',
-    ],
-    suggestions: [
-      `Strong structural fit for ${role} — sections are present and in the expected order.`,
-      'Technical vocabulary aligns with the target role; primary keywords are covered.',
-      'Concise summary paragraph sets up the rest of the resume well.',
-      'Education section is clean and parseable by common ATS.',
-    ],
-  })
+  const categories = Object.keys(roleMap)
+  const availableRoles = Object.keys(roleMap[category] ?? {})
 
-  const handleAnalyze = async () => {
-    if (!file || !category || !role) return
-    setAnalyzing(true); setError(null); setResult(null)
+  const clearResult = () => { setResult(null); setError(null) }
+
+  const handleAnalyze = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!file || !category || !role || analyzing || rolesStatus !== 'ready' || (mode === 'ai' && !aiAvailable)) return
+    const controller = new AbortController()
+    reviewRequest.current = controller
+    setAnalyzing(true)
+    clearResult()
+
     try {
-      if (activeTab === 'ai') {
-        if (!HAS_BACKEND) {
-          await new Promise((r) => setTimeout(r, 1400))
-          setResult(demoAIResult())
-        } else {
-          try {
-            const res = await analyzeResumeAI(file, role)
-            setResult({
-              ats_score: res.ats_score,
-              keyword_match: res.resume_score,
-              format_score: 0,
-              section_score: 0,
-              missing_skills: res.weaknesses ?? [],
-              suggestions: res.strengths ?? [],
-            })
-          } catch {
-            await new Promise((r) => setTimeout(r, 600))
-            setResult(demoAIResult())
-          }
-        }
+      if (mode === 'ai') {
+        const data = await analyzeResumeAI(file, role, jobDescription.trim(), controller.signal)
+        setResult({ mode, data, role, fileName: file.name })
       } else {
-        await new Promise((r) => setTimeout(r, 1200))
-        setResult({
-          ats_score: 84,
-          keyword_match: 71,
-          format_score: 92,
-          section_score: 88,
-          missing_skills: [
-            'Kubernetes',
-            'Terraform',
-            'GraphQL',
-            'CI/CD pipelines',
-            'Observability (Datadog / Grafana)',
-            'System design',
-          ],
-          suggestions: [
-            'Rewrite Experience bullets to lead with measurable outcomes (%, $, users, latency).',
-            'Add a Skills row that mirrors the posting\u2019s required-skills list verbatim.',
-            'Convert the two-column header into a single column so ATS parsers read contact info cleanly.',
-            'Replace generic verbs (helped, worked on, assisted) with active, specific verbs.',
-            'Standardize date formatting to MMM YYYY across Experience and Education.',
-            'Add a one-line project impact summary under each project entry.',
-          ],
-        })
+        const data = await analyzeResume(file, category, role, controller.signal)
+        if (data.document_type !== 'resume') {
+          setError('This file wasn’t recognized as a resume. Check that it contains selectable text, experience, education, and skills.')
+          return
+        }
+        setResult({ mode, data, role, fileName: file.name })
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Analysis failed')
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        setError(cause instanceof Error ? cause.message : 'We couldn’t complete the review. Please try again.')
+      }
     } finally {
       setAnalyzing(false)
+      reviewRequest.current = null
     }
   }
-
-  const scores = result ? (activeTab === 'ai'
-    ? [{ score: result.ats_score, label: 'ATS Score' }, { score: result.keyword_match, label: 'Resume Score' }]
-    : [{ score: result.ats_score, label: 'ATS Score' }, { score: result.keyword_match, label: 'Keywords' }, { score: result.format_score, label: 'Format' }, { score: result.section_score, label: 'Sections' }]
-  ) : []
 
   return (
     <div className="tool-wrapper">
       <div className="tool-paper">
         <div className="tool-binding" aria-hidden />
-
-        <div className="tool-running-head">
-          <span>DR4FT · Resume Analysis</span>
-          <span>Section A · Submission</span>
-        </div>
-
         <div className="tool-header">
-          <div className="tool-header-kicker">Examination Booklet</div>
-          <h1 className="tool-header-title">Submit your paper.</h1>
+          <div className="tool-header-kicker">Review</div>
+          <h1 className="tool-header-title">A second look at your resume.</h1>
+          <p className="tool-description">Check the text, sections, and role-specific keywords in your PDF or DOCX.</p>
         </div>
 
-        <div className="exam-tabs">
-          {(['standard', 'ai'] as const).map((tab) => (
-            <button key={tab} onClick={() => { setActiveTab(tab); setResult(null) }} className={`exam-tab ${activeTab === tab ? 'active' : ''}`}>
-              {tab === 'standard' ? 'Standard' : 'AI Analysis'}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-          <ExamCard title="Category">
-            <select value={category} onChange={(e) => { setCategory(e.target.value); setRole('') }} className="exam-select" aria-label="Job category">
-              <option value="">Select category</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </ExamCard>
-          <ExamCard title="Role">
-            <select value={role} onChange={(e) => setRole(e.target.value)} disabled={!category} className="exam-select" style={{ opacity: !category ? 0.3 : 1 }} aria-label="Job role">
-              <option value="">Select role</option>
-              {availableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </ExamCard>
-        </div>
-
-        <div style={{ marginBottom: 16 }}><PaperUpload onFileSelect={setFile} /></div>
-
-        <ExamButton onClick={handleAnalyze} disabled={!file || !category || !role || analyzing} variant="filled" fullWidth>
-          {analyzing ? 'Grading...' : 'Submit for Grading'}
-        </ExamButton>
-
-        {error && (
-          <div style={{ marginTop: 16, padding: '12px 16px', border: '1px solid rgba(185,28,28,0.2)', background: 'rgba(185,28,28,0.04)' }}>
-            <p style={{ color: '#B91C1C', fontSize: 12, textAlign: 'center', fontFamily: 'var(--font-ibm-plex-mono)' }}>{error}</p>
+        {rolesStatus !== 'ready' ? (
+          <div className="analysis-notice" role="status">
+            <h2>{rolesStatus === 'loading' ? 'Loading resume review…' : 'We couldn’t load the available roles.'}</h2>
+            <p>{rolesStatus === 'loading' ? 'Loading the available roles.' : rolesError}</p>
+            {rolesStatus === 'error' && (
+              <ExamButton onClick={() => { setRolesStatus('loading'); setRetry((value) => value + 1) }}>Try again</ExamButton>
+            )}
           </div>
+        ) : (
+          <>
+            {aiAvailable && <div className="exam-tabs" aria-label="Review method">
+              {(['standard', 'ai'] as const).map((tab) => (
+                <button key={tab} type="button" disabled={analyzing} aria-pressed={mode === tab}
+                  onClick={() => { setMode(tab); clearResult() }} className={`exam-tab ${mode === tab ? 'active' : ''}`}>
+                  {tab === 'standard' ? 'Standard review' : 'AI review'}
+                </button>
+              ))}
+            </div>}
+            <p className="analysis-method-note">
+              {mode === 'standard'
+                ? 'Compare your resume with example keywords for a role. You don’t need every tool in the profile. No AI is used.'
+                : aiAvailable ? 'Get writing feedback for a role or job posting. Your resume text and optional job description are sent to xAI for this review.' : 'AI review is optional. Standard review works without an AI service.'}
+            </p>
+
+            {mode === 'ai' && !aiAvailable ? (
+              <div className="analysis-notice" role="status">
+                <h2>AI review is not enabled on this site.</h2>
+                <p>Standard review is available. It checks your document and role keywords without sending anything to an AI service.</p>
+                <ExamButton onClick={() => { setMode('standard'); clearResult() }}>Use Standard review</ExamButton>
+              </div>
+            ) : <form onSubmit={handleAnalyze} aria-busy={analyzing}>
+              <fieldset disabled={analyzing} className="review-fields">
+                <legend className="sr-only">Resume and target role</legend>
+                <div className="analysis-role-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 16, marginBottom: 16 }}>
+                  <ExamCard title="Field">
+                    <select value={category} onChange={(event) => { setCategory(event.target.value); setRole(''); clearResult() }}
+                      className="exam-select" aria-label="Job category" required>
+                      <option value="">Choose a field</option>
+                      {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </ExamCard>
+                  <ExamCard title="Target role">
+                    <select value={role} onChange={(event) => { setRole(event.target.value); clearResult() }}
+                      disabled={!category || analyzing} className="exam-select" aria-label="Job role" required>
+                      <option value="">Choose a role</option>
+                      {availableRoles.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </ExamCard>
+                </div>
+
+                {mode === 'ai' && (
+                  <div className="analysis-job-description" style={{ marginBottom: 16 }}>
+                    <label htmlFor="job-description" className="exam-label">Job description <span>(optional)</span></label>
+                    <textarea id="job-description" value={jobDescription} rows={5} className="exam-input"
+                      onChange={(event) => { setJobDescription(event.target.value); clearResult() }}
+                      placeholder="Paste the posting to make the feedback more specific." />
+                  </div>
+                )}
+                <div style={{ marginBottom: 16 }}>
+                  <PaperUpload disabled={analyzing} onFileSelect={(selected) => { if (!analyzing) { setFile(selected); clearResult() } }} />
+                </div>
+                <ExamButton type="submit" disabled={!file || !category || !role || analyzing} variant="filled" fullWidth>
+                  {analyzing ? 'Reviewing your resume…' : 'Review resume'}
+                </ExamButton>
+              </fieldset>
+              {analyzing && (
+                <div className="analysis-progress" role="status">
+                  <span>{mode === 'ai' ? 'AI feedback can take up to a minute.' : 'Reading your file and checking the selected role.'}</span>
+                  <button type="button" className="analysis-text-button" onClick={() => reviewRequest.current?.abort()}>Cancel</button>
+                </div>
+              )}
+            </form>}
+          </>
         )}
 
+        {error && <div className="analysis-error" role="alert"><p>{error}</p></div>}
+
         {result && (
-          <div style={{ marginTop: 48 }}>
-            <div style={{ borderBottom: '2px solid var(--color-ink)', paddingBottom: 16, marginBottom: 32 }}>
-              <div className="tool-header-kicker">Examination Results</div>
-              <h2 style={{ fontFamily: 'var(--font-libre-baskerville)', fontSize: 28, fontWeight: 700, color: 'var(--color-ink)' }}>
-                Your Score Report
-              </h2>
+          <section className="analysis-results" aria-label="Resume review results" aria-live="polite">
+            <div className="analysis-result-heading">
+              <div className="tool-header-kicker">{result.mode === 'standard' ? 'Standard review' : 'AI review'}</div>
+              <h2>Your review</h2>
+              <p>{result.fileName} · {result.role}</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scores.length}, 1fr)`, gap: 0, border: '1px solid rgba(0,0,0,0.08)' }}>
-              {scores.map((item, i) => (
-                <div key={item.label} style={{ padding: '28px 24px', borderRight: i < scores.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none' }}>
-                  <GradeDisplay score={item.score} label={item.label} />
-                </div>
-              ))}
-            </div>
-
-            {result.missing_skills.length > 0 && (
-              <div className="highlight-box" style={{ marginTop: 24 }}>
-                <div className="highlight-label">{activeTab === 'ai' ? 'Weaknesses — Areas to Improve' : 'Missing Keywords — Not Found'}</div>
-                <div className="kw-grid">
-                  {result.missing_skills.map((s) => <span key={s} className="exam-tag exam-tag-danger">{s}</span>)}
-                </div>
-              </div>
+            {result.mode === 'standard' ? (
+              <>
+                <p className="analysis-method-note">
+                  {result.data.evidence ? `${result.data.evidence.word_count.toLocaleString()} words read${result.data.evidence.page_count ? ` from ${result.data.evidence.page_count} ${result.data.evidence.page_count === 1 ? 'page' : 'pages'}` : ''}. ` : ''}
+                  {result.data.keyword_match.found_skills.length} of {result.data.keyword_match.found_skills.length + result.data.keyword_match.missing_skills.length} example role keywords found.
+                </p>
+                <p className="analysis-method-note">This is a text check, not an employer’s ATS result. Use the actual job posting to decide which skills matter.</p>
+                {result.data.evidence && (
+                  <section className="analysis-result-section">
+                    <h3>Sections found</h3>
+                    <ul className="analysis-list">
+                      {result.data.evidence.sections.map((section) => <li key={section.name}><strong>{section.name}</strong> — {section.found ? 'found' : 'not recognized'}</li>)}
+                    </ul>
+                  </section>
+                )}
+                {result.data.keyword_match.missing_skills.length > 0 && (
+                  <section className="analysis-result-section">
+                    <h3>Example keywords not found</h3>
+                    <p>These are examples for this role, not a list of required tools. Include only skills relevant to the posting that reflect your experience.</p>
+                    <div className="kw-grid">{result.data.keyword_match.missing_skills.map((skill) => <span key={skill} className="exam-tag">{skill}</span>)}</div>
+                  </section>
+                )}
+                {result.data.keyword_match.found_skills.length > 0 && (
+                  <section className="analysis-result-section">
+                    <h3>Keywords found</h3>
+                    <div className="kw-grid">{result.data.keyword_match.found_skills.map((skill) => <span key={skill} className="exam-tag">{skill}</span>)}</div>
+                  </section>
+                )}
+                {result.data.suggestions.length > 0 && <section className="analysis-result-section">
+                  <h3>Things to check</h3>
+                  <ul className="analysis-list">{result.data.suggestions.map((suggestion, index) => <li key={index}>{suggestion}</li>)}</ul>
+                </section>}
+                {result.data.evidence && (
+                  <details className="analysis-result-section">
+                    <summary>Check the extracted text</summary>
+                    <p>Make sure your main content appears here. Visual layout, images, and Word’s automatic list markers are not assessed.</p>
+                    <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 360, overflowY: 'auto', font: 'inherit', lineHeight: 1.6, marginTop: 16 }}>{result.data.evidence.extracted_text}</pre>
+                  </details>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="analysis-method-note">AI feedback can miss context. Check each suggestion against your experience before making changes.</p>
+                {result.data.weaknesses.length > 0 && (
+                  <section className="analysis-result-section">
+                    <h3>What to improve</h3>
+                    <ul className="analysis-list">{result.data.weaknesses.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                  </section>
+                )}
+                {result.data.strengths.length > 0 && (
+                  <section className="analysis-result-section">
+                    <h3>What’s working</h3>
+                    <ul className="analysis-list">{result.data.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                  </section>
+                )}
+                {result.data.analysis && (
+                  <details className="analysis-result-section">
+                    <summary>Full review</summary>
+                    <div className="analysis-report">
+                      {result.data.analysis.split(/\n\s*\n/).map((paragraph, index) => (
+                        <p key={index} style={{ whiteSpace: 'pre-line' }}>{paragraph.replace(/^#{1,6}\s+/gm, '').replace(/\*\*(.*?)\*\*/g, '$1')}</p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </>
             )}
-
-            {result.suggestions.length > 0 && (
-              <div style={{ marginTop: 24, border: '1px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)', background: 'var(--color-paper-dim)' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 600, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)' }}>
-                    {activeTab === 'ai' ? 'Strengths' : 'Corrections Required'}
-                  </span>
-                </div>
-                {result.suggestions.map((s, i) => (
-                  <div key={i} style={{ padding: '16px 20px', borderBottom: i < result.suggestions.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', display: 'grid', gridTemplateColumns: '36px 1fr', gap: 12 }}>
-                    <span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, color: 'rgba(0,0,0,0.2)' }}>{String(i + 1).padStart(2, '0')}</span>
-                    <p style={{ fontSize: 14, color: 'rgba(26,26,24,0.6)', lineHeight: 1.7 }}>{s}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          </section>
         )}
       </div>
     </div>
