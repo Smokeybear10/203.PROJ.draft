@@ -14,11 +14,18 @@ ai_analyzer = AIResumeAnalyzer()
 
 
 def _extract_text(file: UploadFile, contents: bytes) -> str:
-    if file.filename.endswith(".pdf"):
-        return analyzer.extract_text_from_pdf(io.BytesIO(contents))
-    elif file.filename.endswith(".docx"):
+    filename = (file.filename or "").lower()
+    if not filename.endswith((".pdf", ".docx")):
+        raise HTTPException(status_code=400, detail="Unsupported file type. Upload PDF or DOCX.")
+    try:
+        if filename.endswith(".pdf"):
+            return analyzer.extract_text_from_pdf(io.BytesIO(contents))
         return analyzer.extract_text_from_docx(io.BytesIO(contents))
-    raise HTTPException(status_code=400, detail="Unsupported file type. Upload PDF or DOCX.")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="We couldn’t read this file. Upload a valid, unencrypted PDF or DOCX with selectable text.",
+        ) from exc
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
