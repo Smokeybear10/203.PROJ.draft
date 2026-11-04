@@ -1,0 +1,190 @@
+{
+  "Software Development and Engineering": {
+    "Frontend Developer": {
+      "description": "Create user interfaces and implement visual elements",
+      "required_skills": [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "React",
+        "Angular",
+        "Vue.js",
+        "UI/UX",
+        "Responsive Design"
+      ]
+    },
+    "Backend Developer": {
+      "description": "Build server-side logic and databases",
+      "required_skills": [
+        "Python",
+        "Java",
+        "Node.js",
+        "SQL",
+        "APIs",
+        "Django",
+        "Flask",
+        "Database Design"
+      ]
+    },
+    "Full Stack Developer": {
+      "description": "Handle both client and server-side development",
+      "required_skills": [
+        "Frontend Tech",
+        "Backend Tech",
+        "Databases",
+        "DevOps",
+        "System Design",
+        "APIs"
+      ]
+    },
+    "Mobile App Developer": {
+      "description": "Develop mobile applications for iOS and Android platforms",
+      "required_skills": [
+        "Swift",
+        "Kotlin",
+        "React Native",
+        "Flutter",
+        "Mobile UI/UX",
+        "App Store Deployment"
+      ]
+    },
+    "Game Developer": {
+      "description": "Create engaging and interactive games",
+      "required_skills": [
+        "Unity",
+        "Unreal Engine",
+        "C++",
+        "C#",
+        "3D Graphics",
+        "Game Physics"
+      ]
+    }
+  },
+  "Data Science and Analytics": {
+    "Data Scientist": {
+      "description": "Analyze complex data sets to find patterns",
+      "required_skills": [
+        "Python",
+        "R",
+        "Machine Learning",
+        "Statistics",
+        "SQL",
+        "Deep Learning"
+      ]
+    },
+    "Data Analyst": {
+      "description": "Transform data into insights",
+      "required_skills": [
+        "SQL",
+        "Excel",
+        "Python",
+        "Data Visualization",
+        "Statistics"
+      ]
+    },
+    "Machine Learning Engineer": {
+      "description": "Build and deploy machine learning models",
+      "required_skills": [
+        "Python",
+        "TensorFlow",
+        "PyTorch",
+        "MLOps",
+        "Deep Learning"
+      ]
+    }
+  },
+  "Cloud Computing and DevOps": {
+    "Cloud Architect": {
+      "description": "Design and manage cloud infrastructure",
+      "required_skills": [
+        "AWS",
+        "Azure",
+        "GCP",
+        "Infrastructure as Code",
+        "Security"
+      ]
+    },
+    "DevOps Engineer": {
+      "description": "Implement DevOps practices and tools",
+      "required_skills": [
+        "Docker",
+        "Kubernetes",
+        "CI/CD",
+        "Automation",
+        "Monitoring"
+      ]
+    },
+    "Site Reliability Engineer": {
+      "description": "Ensure system reliability and performance",
+      "required_skills": [
+        "Linux",
+        "Monitoring",
+        "Automation",
+        "Performance Tuning",
+        "Incident Response"
+      ]
+    }
+  },
+  "Cybersecurity": {
+    "Security Analyst": {
+      "description": "Monitor and protect against security threats",
+      "required_skills": [
+        "Network Security",
+        "Threat Detection",
+        "Security Tools",
+        "Incident Response"
+      ]
+    },
+    "Penetration Tester": {
+      "description": "Test systems for security vulnerabilities",
+      "required_skills": [
+        "Ethical Hacking",
+        "Security Tools",
+        "Network Security",
+        "Web Security"
+      ]
+    }
+  },
+  "UI/UX Design": {
+    "UI Designer": {
+      "description": "Create beautiful user interfaces",
+      "required_skills": [
+        "Figma",
+        "Adobe XD",
+        "Visual Design",
+        "Typography",
+        "Color Theory"
+      ]
+    },
+    "UX Designer": {
+      "description": "Design user experiences and flows",
+      "required_skills": [
+        "User Research",
+        "Wireframing",
+        "Prototyping",
+        "Usability Testing"
+      ]
+    }
+  },
+  "Project Management": {
+    "Project Manager": {
+      "description": "Lead and manage project delivery",
+      "required_skills": [
+        "Project Planning",
+        "Agile",
+        "Scrum",
+        "Risk Management",
+        "Stakeholder Management"
+      ]
+    },
+    "Product Manager": {
+      "description": "Define and drive product vision",
+      "required_skills": [
+        "Product Strategy",
+        "Market Research",
+        "User Stories",
+        "Roadmapping"
+      ]
+    }
+  }
+}

@@ -50,18 +50,15 @@ class ResumeAnalyzer:
         return {"score": match_score, "found_skills": found_skills, "missing_skills": missing_skills}
 
     def check_resume_sections(self, text: str) -> float:
-        text = text.lower()
-        essential_sections = {
-            "contact": ["email", "phone", "address", "linkedin"],
-            "education": ["education", "university", "college", "degree", "academic"],
-            "experience": ["experience", "work", "employment", "job", "internship"],
-            "skills": ["skills", "technologies", "tools", "proficiencies", "expertise"],
-        }
-        section_scores = {}
-        for section, keywords in essential_sections.items():
-            found = sum(1 for keyword in keywords if keyword in text)
-            section_scores[section] = min(25, (found / len(keywords)) * 25)
-        return sum(section_scores.values())
+        contact = self.extract_personal_info(text)
+        has_contact = any(contact[key] for key in ("email", "phone", "linkedin"))
+        headings = [
+            r"^\s*(?:education|academic(?: background| history| qualifications)?|qualifications)\b",
+            r"^\s*(?:(?:professional|work|relevant|internship)\s+)?(?:experience|employment|work history|career history)\b",
+            r"^\s*(?:(?:technical|professional|key|core)\s+)?(?:skills|technologies|tools|proficiencies|competencies|expertise)\b",
+        ]
+        present = sum(bool(re.search(pattern, text, re.IGNORECASE | re.MULTILINE)) for pattern in headings)
+        return float(25 * (int(has_contact) + present))
 
     def check_formatting(self, text: str) -> tuple[float, list[str]]:
         lines = text.split("\n")
@@ -97,7 +94,7 @@ class ResumeAnalyzer:
 
     def extract_text_from_pdf(self, file) -> str:
         try:
-            import PyPDF2
+            from pypdf import PdfReader
 
             if hasattr(file, "read"):
                 file_content = file.read()
@@ -105,10 +102,10 @@ class ResumeAnalyzer:
             else:
                 file_content = file
 
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+            pdf_reader = PdfReader(io.BytesIO(file_content))
             text = ""
             for page in pdf_reader.pages:
-                text += page.extract_text() + "\n"
+                text += (page.extract_text() or "") + "\n"
             return text
         except Exception as e:
             raise Exception(f"Error extracting text from PDF: {str(e)}")

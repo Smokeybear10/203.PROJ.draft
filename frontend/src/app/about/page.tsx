@@ -1,97 +1,19 @@
-const FEATURES = [
-  { name: 'ATS Optimization', desc: 'Real-time scoring against industry-standard ATS rubrics.' },
-  { name: 'AI Analysis', desc: 'Deep learning models evaluate content, tone, and keyword density.' },
-  { name: 'Keyword Matching', desc: 'NLP-powered skill extraction and gap analysis.' },
-  { name: 'Resume Builder', desc: 'Template engine with smart autofill and section scoring.' },
-  { name: 'Job Search', desc: 'Multi-portal aggregation and real-time market data.' },
-  { name: 'Analytics', desc: 'Track performance trends over time across roles.' },
-]
-
-const SOCIAL_LINKS = [
-  { label: 'GitHub', href: 'https://github.com/Smokeybear10' },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/thomasou0/' },
-  { label: 'Website', href: 'https://thomasou.com' },
-]
-
-const STACK = [
-  { layer: 'Frontend', tools: 'Next.js, React, TypeScript, Tailwind CSS' },
-  { layer: 'Backend', tools: 'Python, FastAPI' },
-  { layer: 'AI / ML', tools: 'NLP Models, ATS Parsing Engine' },
-  { layer: 'Deploy', tools: 'Vercel, Docker' },
-]
+import Link from 'next/link'
 
 export default function AboutPage() {
   return (
     <div className="tool-wrapper">
-      <div className="tool-paper">
-        <div className="tool-binding" aria-hidden />
-
-        <div className="tool-running-head">
-          <span>DR4FT · Course Syllabus</span>
-          <span>Appendix · The Instructor</span>
+      <article className="tool-paper about-page">
+        <header className="tool-header"><p className="eyebrow">About the project</p><h1 className="tool-header-title">A second look<br />at your resume.</h1><p className="tool-description">Draft brings resume checks, a document builder, and job-board search links into one place.</p></header>
+        <div className="about-sections">
+          <section><h2>What the review tells you</h2><p>The review shows text extracted from your file, recognized section headings, and keywords found for the role you select. The role profiles are examples, so compare them with the actual job posting.</p><p>These checks can help you revise a document. They do not predict an employer’s ATS results or whether you will get an interview.</p></section>
+          <section><h2>Keep your judgment</h2><p>Use the suggestions that fit your experience. Don’t add skills you don’t have or results you can’t support. Describe what you did and what changed because of your work.</p></section>
+          <section><h2>Work on a real application</h2><p>Keep a base resume and make separate copies for the roles you apply to. Paste a job posting to see its technical terms alongside exact excerpts from your projects, experience, and skills. The comparison distinguishes a term listed in Skills from one used in a project or experience description.</p><p>A mention is not proof of proficiency. Read the original requirements and add only experience you can explain. The tool does not invent accomplishments or assess whether you qualify for a role.</p></section>
+          <section><h2>Your files and drafts</h2><p>Uploaded resumes are processed in memory for file review and are not saved by the app. Your editable resumes and job postings stay in this browser. There is no account or cloud sync.</p><p>Download an editable backup to move your work to another browser or restore it later. Clearing browser data removes locally saved resumes. A PDF is for applications; the editable backup preserves your fields and versions.</p></section>
+          <section><h2>Build a clean document</h2><p>The builder gives you a live preview and a downloadable PDF with selectable text. Job boards opens searches on external sites; it doesn’t provide live job counts or salary data.</p><Link className="text-link" href="/builder">Open the builder <span aria-hidden="true">→</span></Link></section>
+          <section className="about-author"><h2>Built by Thomas Ou</h2><p>Fullstack engineer working with TypeScript, React, Next.js, and Python.</p><div className="about-links"><a href="https://thomasou.com">Website</a><a href="https://github.com/Smokeybear10/203.PROJ.draft">GitHub</a><a href="https://www.linkedin.com/in/thomasou0/">LinkedIn</a></div></section>
         </div>
-
-        <div className="tool-header">
-          <div className="tool-header-kicker">Examination Booklet</div>
-          <h1 className="tool-header-title">About DR4FT.</h1>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
-          <div className="exam-card">
-            <div className="exam-card-title">Instructor</div>
-            <h2 style={{ fontFamily: 'var(--font-libre-baskerville)', fontSize: 24, fontWeight: 700, marginBottom: 4, color: 'var(--color-ink)' }}>Thomas Ou</h2>
-            <p style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 12, color: 'var(--color-pencil)', marginBottom: 20 }}>Fullstack Engineer & Designer</p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {SOCIAL_LINKS.map((link) => (
-                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="btn-exam-outline" style={{ padding: '12px 18px', fontSize: 11, minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>
-                  {link.label}<span className="sr-only"> (opens in new tab)</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          <div className="exam-card">
-            <div className="exam-card-title">Course Description</div>
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: 'rgba(26,26,24,0.6)' }}>
-              DR4FT gives job seekers an unfair advantage. Using AI and NLP, it reads resumes
-              the way ATS systems do, then tells you exactly what to fix.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 600, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)', marginBottom: 16 }}>Capabilities</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, border: '1px solid rgba(0,0,0,0.08)' }}>
-            {FEATURES.map((f, i) => (
-              <div
-                key={f.name}
-                className="about-feature-cell"
-                style={{
-                  padding: '20px',
-                  borderRight: (i + 1) % 3 !== 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
-                  borderBottom: i < 3 ? '1px solid rgba(0,0,0,0.06)' : 'none',
-                }}
-              >
-                <p style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 600, fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)', marginBottom: 6 }}>{f.name}</p>
-                <p style={{ fontSize: 13, color: 'rgba(26,26,24,0.55)', lineHeight: 1.6 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)', background: 'var(--color-paper-dim)' }}>
-              <span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 600, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)' }}>Required Textbooks (Tech Stack)</span>
-            </div>
-            {STACK.map((row, i) => (
-              <div key={row.layer} style={{ display: 'flex', gap: 24, padding: '14px 20px', borderBottom: i < STACK.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', alignItems: 'baseline' }}>
-                <span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 600, fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-pencil-dim)', width: 72, flexShrink: 0 }}>{row.layer}</span>
-                <span style={{ fontSize: 14, color: 'rgba(26,26,24,0.6)' }}>{row.tools}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </article>
     </div>
   )
 }
