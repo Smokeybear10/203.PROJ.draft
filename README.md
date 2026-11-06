@@ -1,7 +1,5 @@
 # Draft | AI Resume Optimizer
 
-**Live: [proj-dr4ft.vercel.app](https://proj-dr4ft.vercel.app/)**
-
 Your resume, graded. Draft runs resumes through ATS simulation and xAI Grok, returns per-section scores, missing keywords, and line-by-line rewrites. The whole product is dressed as a Blue Book exam booklet — cream ruled paper, red pen margin notes, PASS/FAIL grade stamps.
 
 ![Hero](assets/landing-hero.gif)
