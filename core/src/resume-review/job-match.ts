@@ -1,4 +1,4 @@
-import type { Resume } from '../../app/builder/resume'
+import type { Resume } from '../builder/resume.ts'
 
 export type ResumeSection = 'Contact' | 'Experience' | 'Education' | 'Projects' | 'Skills'
 export type EvidenceSource = { section: ResumeSection; id?: string; field: string; label: string }

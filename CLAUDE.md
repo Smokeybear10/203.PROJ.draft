@@ -1,6 +1,6 @@
 # DR4FT
 
-AI-powered resume optimization tool.
+Resume analysis and PDF tools. The hosted app and browser frontend are retired; keep core logic and archived visuals.
 
 ## Skill routing
 
@@ -22,8 +22,6 @@ Key routing rules:
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
 
-## Design System
-Always read DESIGN.md before making any visual or UI decisions.
-All font choices, colors, spacing, and aesthetic direction are defined there.
-Do not deviate without explicit user approval.
-In QA mode, flag any code that doesn't match DESIGN.md.
+## Archived Interface
+
+`DESIGN.md` and `assets/` preserve the former interface. There is no frontend build or hosted deployment in this repository. Keep those visuals while maintaining the TypeScript core and local Python API.

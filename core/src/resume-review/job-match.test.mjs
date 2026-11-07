@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { analyzeJobPosting } from './job-match.ts'
-import { emptyResume } from '../../app/builder/resume.ts'
+import { emptyResume } from '../builder/resume.ts'
 
 const resume = (changes = {}) => ({ ...structuredClone(emptyResume), ...changes })
 const names = (posting) => analyzeJobPosting(posting, resume()).matches.map((match) => match.phrase)

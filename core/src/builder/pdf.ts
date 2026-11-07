@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url'
 import { createElement, type ReactNode } from 'react'
 import { Document, Font, Link, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
-import type { Resume } from './resume'
+import type { Resume } from './resume.ts'
 
 async function loadFontFamily(family: string, extension: string, fontRoot: string) {
   const fontFamily = `${family}:${fontRoot}`
@@ -71,7 +72,7 @@ const clean = (value: string) => value.trim().normalize('NFC').replace(/\r\n?/g,
 const lines = (value: string) => clean(value).split('\n').map((line) => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean)
 const h = createElement
 
-export async function createResumePdf(resume: Resume, fontRoot = '/fonts'): Promise<Blob> {
+export async function createResumePdf(resume: Resume, fontRoot = fileURLToPath(new URL('../../fonts', import.meta.url))): Promise<Blob> {
   const family = await loadFonts(resume, fontRoot)
   const minimal = resume.template === 'Minimal'
   const executive = resume.template === 'Executive'
@@ -149,16 +150,4 @@ export function resumePdfFilename(name: string, filename?: string): string {
   const title = sanitize(filename?.replace(/\.pdf\s*$/i, '') ?? '')
   const base = title || `${sanitize(name) || 'resume'}-resume`
   return `${/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(base) ? `resume-${base}` : base}.pdf`
-}
-
-export async function downloadResumePdf(resume: Resume, filename?: string): Promise<void> {
-  const blob = await createResumePdf(resume)
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = resumePdfFilename(resume.name, filename)
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

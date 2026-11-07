@@ -15,8 +15,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!frontend/src/lib/
-!frontend/src/lib/**
 lib64/
 parts/
 sdist/
@@ -141,3 +139,7 @@ resume_data.db
 .gstack/
 .vercel
 .design-shots/
+
+# Core package dependencies
+/core/node_modules/
+*.tsbuildinfo

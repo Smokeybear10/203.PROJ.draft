@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { PDFParse } from 'pdf-parse'
 import { createResumePdf, resumePdfFilename } from './pdf.ts'
 
-const fontRoot = fileURLToPath(new URL('../../../public/fonts', import.meta.url))
+const fontRoot = fileURLToPath(new URL('../../fonts', import.meta.url))
 const resume = {
   name: 'Zoë Nguyễn García', email: 'zoe@example.com', phone: '', location: 'Montréal', website: 'https://example.com',
   summary: 'Engineer working on accessible interfaces — with measurable results.', skills: 'TypeScript, React, C++', template: 'Modern',

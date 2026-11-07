@@ -1,4 +1,4 @@
-import type { ResumeAnalysis, SectionCheck } from './types'
+import type { ResumeAnalysis, SectionCheck } from './types.ts'
 
 const sectionPatterns = [
   { name: 'Experience', pattern: /^\s*(?:(?:professional|work|relevant|internship)\s+)?(?:experience|employment(?: history)?|work history|career history)\s*(?::[^\n]*)?$/im },
